@@ -7,7 +7,18 @@ var passport = require("passport");
 var LocalStrategy = require("passport-local");
 var mongoose = require("mongoose");
 var Campground = require("./models/campground");
+var Comment = require("./models/comment");
 var seedDB = require("./seeds");
+
+// Restful Routing for CGs:
+// Index: /campgrounds
+// New: /campgrounds/new
+// Create: /campgrounds
+// Show: /campgrounds/:id
+
+// Restful Routing for comments:
+// New: campground/:id/comments/new     GET
+// Create: campgrounds/:id/comments     POST
 
 seedDB();
 mongoose.set('useNewUrlParser', true);
@@ -44,10 +55,6 @@ app.set("view engine", "ejs");
 //     {name: "Lakeside lawns", image: "https://logout.world/media/camping-at-panshet-backwaters/44023331_315026922610887_3771461188353785856_n.jpg"}
 // ];
 
-app.listen(process.env.PORT||3000, process.env.IP, function(){
-    console.log("Yelp Server has started.");
-}); 
-
 app.get("/", function(req, res){
     res.render("land");
 });
@@ -61,7 +68,7 @@ app.get("/campgrounds", function(req, res){
             console.log(err);
         }
         else{
-            res.render("index", {campgrounds:allCampgrounds});
+            res.render("campgrounds/index", {campgrounds:allCampgrounds});
         }
     });
     // res.render("campgrounds", {campgrounds: campgrounds});    
@@ -87,16 +94,58 @@ app.post("/campgrounds", function(req, res){
 });
 
 app.get("/campgrounds/new", function(req, res){
-    res.render("new.ejs");
+    res.render("campgrounds/new");
 });
- 
+
+// SHOW - SHows more info about one CG
 app.get("/campgrounds/:id", function(req, res){
-    Campground.findById(req.params.id, function(err, foundCampground){
+    // Find CG with provided ID
+    Campground.findById(req.params.id).populate("comments").exec(function(err, foundCampground){
         if(err){
             console.log(err);
         }
         else{
-            res.render("show", {campground: foundCampground});
+            console.log(foundCampground);
+            // render show template with the same CG
+            res.render("campgrounds/show", {campground: foundCampground});
         }
     });
-})
+});
+
+app.get("/campgrounds/:id/comments/new", function(req,res){
+    // find campground by id
+    Campground.findById(req.params.id, function(err, campground){
+        if(err){
+            console.log(err);
+        }else {
+            res.render("comments/new", {campground: campground});
+        }
+    })
+});
+
+app.post("/campgrounds/:id/comments", (req,res)=>{
+    // lookup Cg using ID
+    Campground.findById(req.params.id, function(err, campground){
+        if(err){
+            console.log(err);
+            res.redirect("/campgrounds");
+        }else{
+            console.log(req.body.comment);
+            Comment.create(req.body.comment, function(err, comment){
+                if(err){
+                    console.log(err);
+                } else {
+                    campground.comments.push(comment);
+                    campground.save();
+                    res.redirect("/campgrounds/" + campground._id );
+                }
+            });
+        }
+    });
+    // create new comment
+    // connect new comment to CG
+    // redirect to CG showpage
+});
+app.listen(process.env.PORT||3000, process.env.IP, function(){
+    console.log("Yelp Server has started.");
+}); 
