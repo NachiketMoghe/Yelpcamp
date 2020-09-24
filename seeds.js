@@ -35,7 +35,7 @@ function seedDB(){
                     //comment creation
                     Comment.create(
                         {
-                        text: "This place is great but I wish there was some internet.",
+                        text: "Binod.",
                         author: "Binod Tharu"
                         }, 
                         function(err, comment){
